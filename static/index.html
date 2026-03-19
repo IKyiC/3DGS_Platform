@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DGS Optimization Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(228, 228, 231, 0.6); box-shadow: 0 10px 40px -10px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02); }
+        .nav-btn-active { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); color: #4f46e5; box-shadow: inset 0 1px 1px white, 0 2px 4px rgba(79, 70, 229, 0.05); border: 1px solid #c7d2fe; }
+        .terminal-bg { background: linear-gradient(180deg, #18181b 0%, #09090b 100%); }
+        .model-selected { background-color: #f8fafc; border-color: #6366f1; box-shadow: 0 0 0 1px #6366f1, 0 4px 6px -1px rgba(99,102,241,0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen relative selection:bg-indigo-100 overflow-x-hidden">
+    
+    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div class="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-emerald-500/10 blur-[120px]"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <header class="flex flex-col md:flex-row md:items-end justify-between mb-10 mt-2">
+            <div>
+                <h1 class="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 drop-shadow-sm mb-1">
+                    3DGS Optimization Platform
+                </h1>
+                <p class="text-sm font-medium text-slate-500 flex items-center">
+                    <i data-lucide="zap" class="w-4 h-4 mr-1.5 text-amber-500"></i>High-Fidelity Gaussian Compression Engine
+                </p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center glass-panel px-4 py-2 rounded-full">
+                <div id="status-dot" class="w-2.5 h-2.5 rounded-full bg-slate-300 mr-2.5 transition-colors duration-300"></div>
+                <span id="status-text" class="text-sm font-semibold text-slate-600 tracking-wide">Connecting...</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[82vh]">
+            <div class="col-span-1 lg:col-span-3 flex flex-col gap-6 h-full">
+                <div class="glass-panel p-3 rounded-2xl">
+                    <div class="flex flex-col gap-1.5">
+                        <button onclick="switchView('console')" id="nav-console" class="nav-btn-active flex items-center w-full px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4 mr-3"></i>Training Console
+                        </button>
+                        <button onclick="switchView('metrics')" id="nav-metrics" class="flex items-center w-full px-4 py-3.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all duration-200 border border-transparent">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4 mr-3"></i>Benchmark Metrics
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl sticky top-8 flex flex-col">
+                    <div class="flex items-center mb-5">
+                        <div class="p-2 bg-slate-100 rounded-lg mr-3 shadow-inner"><i data-lucide="cpu" class="w-4 h-4 text-slate-600"></i></div>
+                        <h2 class="text-base font-bold text-slate-800">Task Scheduler</h2>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">1. Select Algorithm</label>
+                        <div class="flex flex-col gap-2">
+                            <button id="btn-3dgs" onclick="selectModel('3dgs')" class="model-select-btn group flex items-center justify-between w-full bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-slate-50 text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200">
+                                <span class="flex items-center"><i data-lucide="box" class="w-4 h-4 mr-3 text-slate-400 group-hover:text-slate-600 transition-colors"></i>Baseline Training</span>
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-transparent transition-all"></i>
+                            </button>
+                            <button id="btn-scaffoldgs" onclick="selectModel('scaffoldgs')" class="model-select-btn group flex items-center justify-between w-full bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-slate-50 text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200">
+                                <span class="flex items-center"><i data-lucide="component" class="w-4 h-4 mr-3 text-teal-400 group-hover:text-teal-500 transition-colors"></i>Scaffold-GS Anchors</span>
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-transparent transition-all"></i>
+                            </button>
+                            <button id="btn-hac" onclick="selectModel('hac')" class="model-select-btn group flex items-center justify-between w-full bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-slate-50 text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200">
+                                <span class="flex items-center"><i data-lucide="minimize-2" class="w-4 h-4 mr-3 text-orange-400 group-hover:text-orange-500 transition-colors"></i>HAC Compression</span>
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-transparent transition-all"></i>
+                            </button>
+                            <button id="btn-compactgs" onclick="selectModel('compactgs')" class="model-select-btn group flex items-center justify-between w-full bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-slate-50 text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200">
+                                <span class="flex items-center"><i data-lucide="layers" class="w-4 h-4 mr-3 text-blue-400 group-hover:text-blue-500 transition-colors"></i>CompactGS Mesh</span>
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-transparent transition-all"></i>
+                            </button>
+                            <button id="btn-taminggs" onclick="selectModel('taminggs')" class="model-select-btn group flex items-center justify-between w-full bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-slate-50 text-sm font-medium py-2.5 px-4 rounded-xl transition-all duration-200">
+                                <span class="flex items-center"><i data-lucide="scissors" class="w-4 h-4 mr-3 text-purple-400 group-hover:text-purple-500 transition-colors"></i>TamingGS Pruning</span>
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-transparent transition-all"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto flex flex-col gap-3">
+                        <button id="btn-launch" onclick="confirmTask()" disabled class="w-full bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-md flex items-center justify-center">
+                            <i data-lucide="rocket" class="w-4 h-4 mr-2"></i> Deploy Task (30k)
+                        </button>
+                        <button onclick="stopTask()" class="group w-full bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-sm font-bold py-2.5 px-4 rounded-xl transition-all duration-300 flex items-center justify-center">
+                            <i data-lucide="power" class="w-4 h-4 mr-2 opacity-70 group-hover:opacity-100"></i> Terminate
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-1 lg:col-span-9 relative">
+                <div id="view-console" class="flex flex-col gap-6 h-full transition-opacity duration-300">
+                    <div class="glass-panel p-2 rounded-2xl flex flex-col relative min-h-[280px] flex-shrink-0">
+                        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 z-10">
+                            <div class="flex items-center"><div class="p-1.5 bg-emerald-50 rounded-md mr-3"><i data-lucide="trending-down" class="w-4 h-4 text-emerald-600"></i></div><h2 class="text-sm font-bold text-slate-800">Real-time Loss Curve</h2></div>
+                            <span class="text-xs font-mono font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded-full" id="latest-loss">Awaiting data...</span>
+                        </div>
+                        <div id="loss-chart" class="flex-1 w-full mt-2 min-h-[220px]"></div>
+                    </div>
+                    <div class="glass-panel p-2 rounded-2xl flex flex-col h-[400px]">
+                        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                            <div class="flex items-center"><div class="p-1.5 bg-slate-100 rounded-md mr-3"><i data-lucide="terminal-square" class="w-4 h-4 text-slate-600"></i></div><h2 class="text-sm font-bold text-slate-800">Execution Shell</h2></div>
+                            <button onclick="clearTerminal()" class="text-slate-400 hover:text-rose-500 transition-colors p-1 hover:bg-rose-50 rounded-md" title="Clear logs"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                        <div class="flex-1 terminal-bg rounded-xl m-2 overflow-hidden relative shadow-inner border border-zinc-800 flex flex-col">
+                            <div class="bg-zinc-900/80 px-4 py-2.5 border-b border-zinc-800/50 flex items-center">
+                                <div class="flex gap-2"><div class="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div><div class="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div><div class="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]"></div></div>
+                                <div class="flex-1 text-center"><span class="text-[11px] text-zinc-500 font-mono font-medium tracking-wider">root@autodl-container:~</span></div>
+                            </div>
+                            <div id="terminal" class="flex-1 p-5 overflow-y-auto font-mono text-[13px] leading-relaxed text-zinc-300">
+                                <span class="text-zinc-500 italic">System ready. Select a model to begin standard training...</span><br>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-metrics" class="hidden flex flex-col gap-6 h-full transition-opacity duration-300">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-shrink-0">
+                        <div class="glass-panel p-5 rounded-2xl flex flex-col h-[300px]">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center mb-1"><div class="p-1 bg-blue-50 rounded mr-2"><i data-lucide="scatter-chart" class="w-3.5 h-3.5 text-blue-500"></i></div>体积与画质权衡 (Trade-off)</h3>
+                            <div id="scatter-chart" class="flex-1 w-full relative"><div id="scatter-loader" class="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm z-10"><i data-lucide="loader-2" class="w-6 h-6 text-indigo-500 animate-spin"></i></div></div>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl flex flex-col h-[300px]">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center mb-1"><div class="p-1 bg-purple-50 rounded mr-2"><i data-lucide="radar" class="w-3.5 h-3.5 text-purple-500"></i></div>多维性能雷达图</h3>
+                            <div id="radar-chart" class="flex-1 w-full"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl overflow-hidden flex-shrink-0">
+                        <div class="px-6 py-5 border-b border-slate-100 bg-white/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                            <h3 class="text-base font-bold text-slate-800 flex items-center"><div class="p-1.5 bg-indigo-50 rounded-md mr-3"><i data-lucide="table" class="w-4 h-4 text-indigo-600"></i></div>自动化基准测试矩阵</h3>
+                            <span class="text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full flex items-center shadow-sm"><span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>Live Data Synced</span>
+                        </div>
+                        <div class="overflow-x-auto p-4">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-slate-500 uppercase font-bold border-b-2 border-slate-100">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-4">评估维度</th>
+                                        <th scope="col" class="px-4 py-4">原版 3DGS</th>
+                                        <th scope="col" class="px-4 py-4 text-teal-600">Scaffold-GS</th>
+                                        <th scope="col" class="px-4 py-4 text-orange-600">HAC</th>
+                                        <th scope="col" class="px-4 py-4 text-blue-600">CompactGS</th>
+                                        <th scope="col" class="px-4 py-4 text-purple-600">TamingGS</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100/80">
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-4 py-4 font-bold text-slate-700">体积 (MB) ↓</td>
+                                        <td class="px-4 py-4 text-slate-500" id="val-size-baseline">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-size-sgs">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-size-hac">--</td>
+                                        <td class="px-4 py-4 font-bold text-emerald-600" id="val-size-cgs">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-size-tgs">--</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-4 py-4 font-bold text-slate-700">PSNR (dB) ↑</td>
+                                        <td class="px-4 py-4 text-slate-500" id="val-psnr-baseline">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-psnr-sgs">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-psnr-hac">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-psnr-cgs">--</td>
+                                        <td class="px-4 py-4 font-bold text-indigo-600" id="val-psnr-tgs">--</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-4 py-4 font-bold text-slate-700">SSIM ↑</td>
+                                        <td class="px-4 py-4 text-slate-500" id="val-ssim-baseline">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-ssim-sgs">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-ssim-hac">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-ssim-cgs">--</td>
+                                        <td class="px-4 py-4 font-bold text-indigo-600" id="val-ssim-tgs">--</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-100/80">
+                                        <td class="px-4 py-4 font-bold text-slate-700">LPIPS ↓</td>
+                                        <td class="px-4 py-4 text-slate-500" id="val-lpips-baseline">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-lpips-sgs">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-lpips-hac">--</td>
+                                        <td class="px-4 py-4 font-medium text-slate-700" id="val-lpips-cgs">--</td>
+                                        <td class="px-4 py-4 font-bold text-emerald-600" id="val-lpips-tgs">--</td>
+                                    </tr>
+                                    <tr class="bg-slate-50/80 hover:bg-slate-100 transition-colors border-t-2 border-slate-200">
+                                        <td class="px-4 py-4 font-bold text-slate-800 flex items-center"><i data-lucide="download-cloud" class="w-4 h-4 mr-2 text-slate-500"></i>下载</td>
+                                        <td class="px-4 py-4"><button onclick="downloadAsset('3dgs')" class="text-slate-600 hover:text-slate-900 flex items-center text-xs font-bold bg-white border border-slate-200 shadow-sm hover:shadow px-2 py-1 rounded-lg transition-all"><i data-lucide="package" class="w-3.5 h-3.5 mr-1"></i>ZIP</button></td>
+                                        <td class="px-4 py-4"><button onclick="downloadAsset('scaffoldgs')" class="text-teal-600 hover:text-teal-800 flex items-center text-xs font-bold bg-white border border-teal-200 shadow-sm hover:shadow px-2 py-1 rounded-lg transition-all"><i data-lucide="package" class="w-3.5 h-3.5 mr-1"></i>ZIP</button></td>
+                                        <td class="px-4 py-4"><button onclick="downloadAsset('hac')" class="text-orange-600 hover:text-orange-800 flex items-center text-xs font-bold bg-white border border-orange-200 shadow-sm hover:shadow px-2 py-1 rounded-lg transition-all"><i data-lucide="package" class="w-3.5 h-3.5 mr-1"></i>ZIP</button></td>
+                                        <td class="px-4 py-4"><button onclick="downloadAsset('compactgs')" class="text-blue-600 hover:text-blue-800 flex items-center text-xs font-bold bg-white border border-blue-200 shadow-sm hover:shadow px-2 py-1 rounded-lg transition-all"><i data-lucide="package" class="w-3.5 h-3.5 mr-1"></i>ZIP</button></td>
+                                        <td class="px-4 py-4"><button onclick="downloadAsset('taminggs')" class="text-purple-600 hover:text-purple-800 flex items-center text-xs font-bold bg-white border border-purple-200 shadow-sm hover:shadow px-2 py-1 rounded-lg transition-all"><i data-lucide="package" class="w-3.5 h-3.5 mr-1"></i>ZIP</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        let scatterChartInstance = null; let radarChartInstance = null; let selectedModel = null; 
+
+        function downloadAsset(modelType) { alert(`正在打包 ${modelType.toUpperCase()} ...`); window.location.href = `/api/download/${modelType}`; }
+
+        function selectModel(modelType) {
+            selectedModel = modelType;
+            const buttons = document.querySelectorAll('.model-select-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('model-selected');
+                btn.lastElementChild.classList.remove('text-indigo-500');
+                btn.lastElementChild.classList.add('text-transparent');
+            });
+            const activeBtn = document.getElementById('btn-' + modelType);
+            activeBtn.classList.add('model-selected');
+            activeBtn.lastElementChild.classList.remove('text-transparent');
+            activeBtn.lastElementChild.classList.add('text-indigo-500');
+            document.getElementById('btn-launch').disabled = false;
+        }
+
+        function confirmTask() {
+            if (!selectedModel) return;
+            switchView('console'); 
+            if (ws && ws.readyState === WebSocket.OPEN) { clearTerminal(); ws.send(`start_${selectedModel}`); }
+        }
+
+        function switchView(viewName) {
+            const consoleView = document.getElementById('view-console'); const metricsView = document.getElementById('view-metrics');
+            const navConsole = document.getElementById('nav-console'); const navMetrics = document.getElementById('nav-metrics');
+            const activeClass = "nav-btn-active flex items-center w-full px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-200";
+            const inactiveClass = "flex items-center w-full px-4 py-3.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-all duration-200 border border-transparent";
+            if (viewName === 'console') {
+                metricsView.classList.add('hidden'); consoleView.classList.remove('hidden');
+                setTimeout(() => { if (myChart) myChart.resize(); }, 50);
+                navConsole.className = activeClass; navMetrics.className = inactiveClass;
+            } else {
+                consoleView.classList.add('hidden'); metricsView.classList.remove('hidden');
+                navMetrics.className = activeClass; navConsole.className = inactiveClass;
+                fetchAndRenderMetrics();
+            }
+        }
+
+        async function fetchAndRenderMetrics() {
+            if(!scatterChartInstance) { scatterChartInstance = echarts.init(document.getElementById('scatter-chart')); radarChartInstance = echarts.init(document.getElementById('radar-chart')); }
+            document.getElementById('scatter-loader').classList.remove('hidden');
+            try {
+                const response = await fetch('/api/metrics?t=' + new Date().getTime());
+                if (!response.ok) throw new Error(`响应异常: ${response.status}`);
+                const data = await response.json();
+                
+                const updateCell = (id, val) => { document.getElementById(id).innerText = val; };
+                updateCell('val-size-baseline', data.baseline.size); updateCell('val-psnr-baseline', data.baseline.psnr); updateCell('val-ssim-baseline', data.baseline.ssim); updateCell('val-lpips-baseline', data.baseline.lpips);
+                updateCell('val-size-sgs', data.scaffoldgs.size); updateCell('val-psnr-sgs', data.scaffoldgs.psnr); updateCell('val-ssim-sgs', data.scaffoldgs.ssim); updateCell('val-lpips-sgs', data.scaffoldgs.lpips);
+                updateCell('val-size-hac', data.hac.size); updateCell('val-psnr-hac', data.hac.psnr); updateCell('val-ssim-hac', data.hac.ssim); updateCell('val-lpips-hac', data.hac.lpips);
+                updateCell('val-size-cgs', data.compactgs.size); updateCell('val-psnr-cgs', data.compactgs.psnr); updateCell('val-ssim-cgs', data.compactgs.ssim); updateCell('val-lpips-cgs', data.compactgs.lpips);
+                updateCell('val-size-tgs', data.taminggs.size); updateCell('val-psnr-tgs', data.taminggs.psnr); updateCell('val-ssim-tgs', data.taminggs.ssim); updateCell('val-lpips-tgs', data.taminggs.lpips);
+
+                scatterChartInstance.setOption({
+                    tooltip: { trigger: 'item', backgroundColor: 'rgba(255, 255, 255, 0.95)', formatter: p => `<div class="font-bold mb-1">${p.seriesName}</div>体积: ${p.value[0]} MB<br/>PSNR: ${p.value[1]} dB` },
+                    grid: { left: '12%', right: '5%', bottom: '15%', top: '15%' },
+                    xAxis: { name: '体积(MB) →', nameLocation: 'middle', nameGap: 25, type: 'value', scale: true },
+                    yAxis: { name: 'PSNR(dB) ↑', type: 'value', scale: true },
+                    series: [
+                        { name: '原版 3DGS', type: 'scatter', symbolSize: 24, itemStyle: { color: '#94a3b8' }, data: [[data.baseline.size, data.baseline.psnr]] },
+                        { name: 'Scaffold-GS', type: 'scatter', symbolSize: 24, itemStyle: { color: '#14b8a6' }, data: [[data.scaffoldgs.size, data.scaffoldgs.psnr]] },
+                        { name: 'HAC', type: 'scatter', symbolSize: 24, itemStyle: { color: '#f97316' }, data: [[data.hac.size, data.hac.psnr]] },
+                        { name: 'CompactGS', type: 'scatter', symbolSize: 24, itemStyle: { color: '#3b82f6' }, data: [[data.compactgs.size, data.compactgs.psnr]] },
+                        { name: 'TamingGS', type: 'scatter', symbolSize: 24, itemStyle: { color: '#a855f7' }, data: [[data.taminggs.size, data.taminggs.psnr]] }
+                    ]
+                });
+
+                radarChartInstance.setOption({
+                    tooltip: { trigger: 'item' }, legend: { bottom: 0, itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10 } },
+                    radar: { indicator: [{ name: '体积(MB)', max: 500 }, { name: 'PSNR', max: 40, min: 25 }, { name: 'SSIM', max: 1, min: 0.85 }, { name: 'LPIPS', max: 0.3 }], radius: '60%', center: ['50%', '45%'], axisName: { color: '#64748b', fontSize: 10, fontWeight: 'bold' } },
+                    series: [{ type: 'radar', symbol: 'circle', symbolSize: 4, data: [
+                            { value: [data.baseline.size, data.baseline.psnr, data.baseline.ssim, data.baseline.lpips], name: '原版 3DGS', itemStyle: { color: '#94a3b8' }, lineStyle: { type: 'dashed' } },
+                            { value: [data.scaffoldgs.size, data.scaffoldgs.psnr, data.scaffoldgs.ssim, data.scaffoldgs.lpips], name: 'Scaffold-GS', itemStyle: { color: '#14b8a6' } },
+                            { value: [data.hac.size, data.hac.psnr, data.hac.ssim, data.hac.lpips], name: 'HAC', itemStyle: { color: '#f97316' } },
+                            { value: [data.compactgs.size, data.compactgs.psnr, data.compactgs.ssim, data.compactgs.lpips], name: 'CompactGS', itemStyle: { color: '#3b82f6' } },
+                            { value: [data.taminggs.size, data.taminggs.psnr, data.taminggs.ssim, data.taminggs.lpips], name: 'TamingGS', itemStyle: { color: '#a855f7' } }
+                    ]}]
+                });
+            } catch (err) { console.error("Error:", err); } 
+            finally { document.getElementById('scatter-loader').classList.add('hidden'); }
+        }
+
+        window.addEventListener('resize', () => { if(myChart) myChart.resize(); if(scatterChartInstance) scatterChartInstance.resize(); if(radarChartInstance) radarChartInstance.resize(); });
+
+        const chartDom = document.getElementById('loss-chart'); const myChart = echarts.init(chartDom);
+        let lossData = []; let iterData = []; let lossUpdateCounter = 0;
+        myChart.setOption({ animation: false, tooltip: { trigger: 'axis' }, grid: { left: '3%', right: '4%', bottom: '5%', top: '10%', containLabel: true }, xAxis: { type: 'category', data: iterData, boundaryGap: false }, yAxis: { type: 'value', scale: true }, series: [{ name: 'Loss', type: 'line', data: lossData, smooth: true, symbol: 'none', lineStyle: { color: '#10b981', width: 2.5 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(16, 185, 129, 0.25)' }, { offset: 1, color: 'rgba(16, 185, 129, 0)' }]) } }] });
+
+        let ws; const terminalEl = document.getElementById('terminal'); const latestLossEl = document.getElementById('latest-loss'); 
+        let parseBuffer = ""; let domLogBuffer = ""; let chartNeedsUpdate = false;
+
+        function connectWS() {
+            ws = new WebSocket((window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws');
+            ws.onopen = () => { document.getElementById('status-dot').className = "w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2.5 shadow-[0_0_8px_rgba(16,185,129,0.5)]"; document.getElementById('status-text').innerText = "System Online"; document.getElementById('status-text').className = "text-sm font-bold text-emerald-600 tracking-wide"; };
+            
+            ws.onmessage = (e) => {
+                domLogBuffer += e.data; parseBuffer += e.data; 
+                let lines = parseBuffer.replace(/<br>/gi, '\n').split('\n'); parseBuffer = lines.pop(); 
+                for (let line of lines) {
+                    let match = line.replace(/<[^>]+>/g, '').match(/(?:,\s*|^)Loss[=:]\s*([\d\.]+)/i);
+                    if (match) { 
+                        let val = parseFloat(match[1]); 
+                        if (!isNaN(val)) { iterData.push(++lossUpdateCounter); lossData.push(val); latestLossEl.innerText = "Current Loss: " + val.toFixed(5); chartNeedsUpdate = true; } 
+                    }
+                }
+            };
+            ws.onclose = () => { document.getElementById('status-dot').className = "w-2.5 h-2.5 rounded-full bg-rose-500 mr-2.5"; document.getElementById('status-text').innerText = "Disconnected"; document.getElementById('status-text').className = "text-sm font-bold text-rose-600 tracking-wide"; setTimeout(connectWS, 3000); };
+        }
+
+        setInterval(() => {
+            if (domLogBuffer.length > 0) { terminalEl.insertAdjacentHTML('beforeend', domLogBuffer); terminalEl.scrollTop = terminalEl.scrollHeight; domLogBuffer = ""; }
+            if (chartNeedsUpdate) { myChart.setOption({ xAxis: { data: iterData }, series: [{ data: lossData }] }); chartNeedsUpdate = false; }
+        }, 200);
+
+        function clearTerminal() { terminalEl.innerHTML = "<span class='text-zinc-500 italic'>System ready. Select a model to begin standard training...</span><br>"; lossData = []; iterData = []; lossUpdateCounter = 0; latestLossEl.innerText = "Awaiting data..."; myChart.setOption({ xAxis: { data: iterData }, series: [{ data: lossData }] }); }
+        function stopTask() { if (ws && ws.readyState === WebSocket.OPEN) ws.send("stop_task"); }
+        window.onload = connectWS;
+    </script>
+</body>
+</html>

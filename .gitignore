@@ -1,0 +1,26 @@
+# 1. 忽略所有模型产物与大文件
+output/
+*.ply
+*.pth
+*.pt
+*.zip
+*.tar.gz
+*.mp4
+bitstreams/
+
+# 2. 忽略数据集 (绝对不能传)
+data/
+db/
+
+# 3. 忽略 Python 缓存与虚拟环境
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+conda_envs/
+venv/
+env/
+
+# 4. 忽略前端模块缓存 (如果有)
+node_modules/
+.DS_Store
