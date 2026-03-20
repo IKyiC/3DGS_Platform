@@ -1,4 +1,4 @@
-# 🚀 3DGS Optimization Platform (3D高斯压缩算法优化平台)
+#  3DGS Optimization Platform (3D高斯压缩算法优化平台)
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8%2B-green.svg)
